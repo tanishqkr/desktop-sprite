@@ -1,0 +1,36 @@
+/* Transparent, borderless desktop-pet styling.
+   Scoped to the pet window ([data-view="pet"]) so these globals don't affect
+   the opaque Control Panel, since all CSS is bundled together. */
+
+html[data-view="pet"],
+html[data-view="pet"] body,
+html[data-view="pet"] #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  overflow: hidden;
+}
+
+html[data-view="pet"] body {
+  /* Never show text selection / native context menu / scrollbars. */
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.pet-root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.sprite {
+  /* Crisp pixel art; no smoothing when scaled up. */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
