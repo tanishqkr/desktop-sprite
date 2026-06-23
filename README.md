@@ -56,13 +56,22 @@ Use *Quit* to exit completely.
 | Config | JSON (`src/pet.config.json`) |
 | Persistence | `tauri-plugin-store` (config saved to disk) |
 | Package manager | pnpm |
-| Plugins | `tauri-plugin-autostart`, `tauri-plugin-store`, `tauri-plugin-opener` |
+| Plugins | `tauri-plugin-autostart`, `tauri-plugin-store` |
 
 ## Prerequisites
 
 - **Node** 18+ and **pnpm**
-- **Rust** (stable, MSVC toolchain on Windows) + **Visual Studio C++ Build Tools**
-- **WebView2** runtime (ships with Windows 11)
+- **Rust** (stable)
+
+Platform toolchains:
+
+| OS | Needs |
+| --- | --- |
+| **Windows** | MSVC toolchain + **Visual Studio C++ Build Tools**; **WebView2** runtime (ships with Windows 11) |
+| **macOS** | **Xcode Command Line Tools** (`xcode-select --install`); WebKit ships with the OS. macOS **10.15+** |
+
+> macOS builds must be produced **on a Mac** — Tauri does not cross-compile the
+> `.app`/`.dmg` from Windows.
 
 ## Develop
 
@@ -79,6 +88,43 @@ pnpm tauri build
 
 Output goes to `src-tauri/target/release/` (and bundles under `bundle/`):
 Windows `.exe` / `.msi`, macOS `.app` / `.dmg`.
+
+### Cross-platform notes
+
+The frontend is identical on every OS. Native window behavior differs:
+
+- **Windows** — `alwaysOnTop` + `skipTaskbar` (set in `tauri.conf.json`) keep the pet
+  floating with no taskbar entry.
+- **macOS** — `src-tauri/src/lib.rs` adds `#[cfg(target_os = "macos")]` setup that runs
+  the app as an **accessory** (no Dock icon, no menu bar) and gives the pet window the
+  `canJoinAllSpaces | stationary | fullScreenAuxiliary` collection behavior, so it shows
+  on every Space and floats above full-screen apps. This needs the `macos-private-api`
+  feature (already enabled) for the transparent window. Distributing outside your own Mac
+  additionally requires **code signing + notarization** (an Apple Developer account);
+  unsigned `.app`s open via right-click → *Open*.
+
+## Releasing (CI builds for macOS + Windows)
+
+You don't need a Mac to produce a macOS installer. The workflow at
+`.github/workflows/release.yml` builds **both** OSes on GitHub's free runners and
+attaches the installers to a GitHub Release. Trigger it by pushing a version tag:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+(You can also run it manually: GitHub → **Actions** → *Release* → **Run workflow**.)
+
+When the run finishes (~5–10 min), GitHub → **Releases** has a **draft** release with:
+
+- `desktop-pet_<ver>_universal.dmg` — macOS (universal: Apple Silicon + Intel)
+- `desktop-pet_<ver>_x64-setup.exe` and `..._x64_en-US.msi` — Windows
+
+Review it and click **Publish release**. To install on a Mac: download the `.dmg`,
+drag the app to `/Applications`, and open it the first time via **right-click → Open**
+(it's unsigned). Builds are unsigned, so notarization/signing isn't configured — see
+the note above if you later distribute publicly.
 
 ## Customising your pet
 

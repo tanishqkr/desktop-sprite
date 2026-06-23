@@ -10,6 +10,33 @@ use tauri::{
 };
 use tauri_plugin_autostart::MacosLauncher;
 
+// macOS-specific window behavior. On Windows the `alwaysOnTop` + `skipTaskbar`
+// config flags are enough; macOS needs native AppKit calls to (a) drop the Dock
+// icon / menu bar and (b) keep the pet visible across every Space and floating
+// above full-screen apps (which plain always-on-top does not cover).
+#[cfg(target_os = "macos")]
+mod macos {
+    use cocoa::appkit::{NSWindow, NSWindowCollectionBehavior};
+    use cocoa::base::id;
+    use tauri::WebviewWindow;
+
+    /// Make `window` behave like a true desktop overlay: present on all Spaces,
+    /// floating over full-screen apps, and not shuffled between Spaces by
+    /// Mission Control.
+    pub fn make_overlay(window: &WebviewWindow) {
+        if let Ok(ptr) = window.ns_window() {
+            let ns = ptr as id;
+            unsafe {
+                ns.setCollectionBehavior_(
+                    NSWindowCollectionBehavior::NSWindowCollectionBehaviorCanJoinAllSpaces
+                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorStationary
+                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary,
+                );
+            }
+        }
+    }
+}
+
 /// Show the floating pet window.
 #[tauri::command]
 fn show_pet(app: tauri::AppHandle) {
@@ -86,6 +113,16 @@ pub fn run() {
             quit_app
         ])
         .setup(|app| {
+            // macOS: run as an accessory (no Dock icon, no menu bar) and make
+            // the pet a cross-Space, over-fullscreen overlay. No-ops elsewhere.
+            #[cfg(target_os = "macos")]
+            {
+                let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                if let Some(pet) = app.get_webview_window("main") {
+                    macos::make_overlay(&pet);
+                }
+            }
+
             // Closing the control panel hides it to the tray instead of
             // destroying it, so it can be reopened from the tray.
             if let Some(control) = app.get_webview_window("control") {

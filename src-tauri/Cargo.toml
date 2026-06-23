@@ -22,3 +22,8 @@ tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-ap
 tauri-plugin-autostart = "2"
 tauri-plugin-store = "2"
 
+# macOS-only: native AppKit access to set the pet window's collection behavior
+# (all-Spaces / over-fullscreen overlay). Not pulled in on other targets.
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.26"
+
