@@ -66,7 +66,7 @@ export default function ControlPanel() {
     } catch { /* ignore */ }
   };
 
-  const a = cfg.animations[sel] || { x: 0, y: 0, w: 64, h: 64, frames: 1 };
+  const a = cfg.animations[sel] || { x: 0, y: 0, w: 64, h: 64, framesX: 1, framesY: 1 };
 
   return (
     <div className="cp">
@@ -112,12 +112,13 @@ export default function ControlPanel() {
           onCommit={() => applyAndSave({ ...cfg })}
         />
 
-        <div className="cp-grid5">
+        <div className="cp-grid6">
           <NumField label="X" value={a.x} onChange={(v) => updateAnim(sel, { x: v })} />
           <NumField label="Y" value={a.y} onChange={(v) => updateAnim(sel, { y: v })} />
           <NumField label="W" value={a.w} min={1} onChange={(v) => updateAnim(sel, { w: v })} />
           <NumField label="H" value={a.h} min={1} onChange={(v) => updateAnim(sel, { h: v })} />
-          <NumField label="Frames" value={a.frames} min={1} onChange={(v) => updateAnim(sel, { frames: v })} />
+          <NumField label="Frames X" value={a.framesX || a.frames || 1} min={1} onChange={(v) => updateAnim(sel, { framesX: v })} />
+          <NumField label="Frames Y" value={a.framesY || 1} min={1} onChange={(v) => updateAnim(sel, { framesY: v })} />
         </div>
 
         <div className="cp-slice-preview">
@@ -204,31 +205,80 @@ function Slicer({ spriteSheet, anim, onChange, onCommit }) {
   const stageRef = useRef(null);
   const [dims, setDims] = useState({ w: 0, h: 0 });
   const draw = useRef(null);
+  const imgRef = useRef(null);
 
-  const toImg = (e) => {
+  const toImg = (e, isDown = false) => {
     const r = stageRef.current.getBoundingClientRect();
-    return {
-      x: Math.round(((e.clientX - r.left) / r.width) * dims.w),
-      y: Math.round(((e.clientY - r.top) / r.height) * dims.h),
-    };
+    const img = imgRef.current;
+    
+    if (isDown) {
+      console.log("--------------------------------------------------");
+      console.log("Mouse");
+      console.log(`clientX: ${e.clientX}`);
+      console.log(`clientY: ${e.clientY}`);
+      console.log(`pageX: ${e.pageX}`);
+      console.log(`pageY: ${e.pageY}`);
+      console.log(`screenX: ${e.screenX}`);
+      console.log(`screenY: ${e.screenY}`);
+      console.log(`offsetX: ${e.nativeEvent.offsetX}`);
+      console.log(`offsetY: ${e.nativeEvent.offsetY}`);
+      
+      console.log("--------------------------------------------------");
+      console.log("Image");
+      console.log(`naturalWidth: ${img?.naturalWidth}`);
+      console.log(`naturalHeight: ${img?.naturalHeight}`);
+      console.log(`width: ${img?.width}`);
+      console.log(`height: ${img?.height}`);
+      console.log(`clientWidth: ${img?.clientWidth}`);
+      console.log(`clientHeight: ${img?.clientHeight}`);
+      console.log(`offsetWidth: ${img?.offsetWidth}`);
+      console.log(`offsetHeight: ${img?.offsetHeight}`);
+      console.log(`scrollWidth: ${img?.scrollWidth}`);
+      console.log(`scrollHeight: ${img?.scrollHeight}`);
+      console.log(`stage getBoundingClientRect:`, r);
+      console.log(`devicePixelRatio: ${window.devicePixelRatio}`);
+    }
+
+    const x = Math.round(((e.clientX - r.left) / r.width) * dims.w);
+    const y = Math.round(((e.clientY - r.top) / r.height) * dims.h);
+    
+    if (isDown) {
+      console.log(`convertedX: ${x}, convertedY: ${y}`);
+    }
+    return { x, y, rawX: e.clientX, rawY: e.clientY };
   };
 
   const onDown = (e) => {
     if (!dims.w) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    draw.current = toImg(e);
+    console.log("--------------------------------------------------");
+    console.log("Selection dragStart");
+    draw.current = toImg(e, true);
   };
   const onMove = (e) => {
     if (!draw.current) return;
-    const p = toImg(e);
+    const p = toImg(e, false);
     const x = Math.min(draw.current.x, p.x);
     const y = Math.min(draw.current.y, p.y);
     const w = Math.abs(p.x - draw.current.x);
     const h = Math.abs(p.y - draw.current.y);
-    if (w > 3 && h > 3) onChange({ x, y, w, h });
+    if (w > 3 && h > 3) {
+      onChange({ x, y, w, h });
+    }
   };
-  const onUp = () => {
+  const onUp = (e) => {
     if (draw.current) {
+      const p = toImg(e, false);
+      const w = Math.abs(p.x - draw.current.x);
+      const h = Math.abs(p.y - draw.current.y);
+      console.log("--------------------------------------------------");
+      console.log("Selection dragEnd");
+      console.log(`rawWidth: ${Math.abs(p.rawX - draw.current.rawX)}`);
+      console.log(`rawHeight: ${Math.abs(p.rawY - draw.current.rawY)}`);
+      console.log(`convertedWidth: ${w}`);
+      console.log(`convertedHeight: ${h}`);
+      console.log(`savedX: ${anim.x}, savedY: ${anim.y}, savedW: ${anim.w}, savedH: ${anim.h}`);
+      
       draw.current = null;
       onCommit();
     }
@@ -243,6 +293,7 @@ function Slicer({ spriteSheet, anim, onChange, onCommit }) {
       onPointerUp={onUp}
     >
       <img
+        ref={imgRef}
         src={spriteSheet}
         alt="sheet"
         draggable={false}
@@ -250,17 +301,19 @@ function Slicer({ spriteSheet, anim, onChange, onCommit }) {
       />
       {dims.w > 0 && (
         <svg className="slicer-overlay" viewBox={`0 0 ${dims.w} ${dims.h}`} preserveAspectRatio="none">
-          {Array.from({ length: Math.max(1, anim.frames) }).map((_, i) => (
-            <rect
-              key={i}
-              x={anim.x + i * anim.w}
-              y={anim.y}
-              width={anim.w}
-              height={anim.h}
-              className={i === 0 ? "frame0" : "frameN"}
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
+          {Array.from({ length: Math.max(1, anim.framesY || 1) }).map((_, r) =>
+            Array.from({ length: Math.max(1, anim.framesX || anim.frames || 1) }).map((_, c) => (
+              <rect
+                key={`${r}-${c}`}
+                x={anim.x + c * anim.w}
+                y={anim.y + r * anim.h}
+                width={anim.w}
+                height={anim.h}
+                className={r === 0 && c === 0 ? "frame0" : "frameN"}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))
+          )}
         </svg>
       )}
     </div>
@@ -270,12 +323,13 @@ function Slicer({ spriteSheet, anim, onChange, onCommit }) {
 // Plays one animation's frames in a small box.
 function AnimPreview({ cfg, animKey, box = 64 }) {
   const [frame, setFrame] = useState(0);
-  const a = cfg.animations?.[animKey] ?? { x: 0, y: 0, w: 64, h: 64, frames: 1 };
-  useAnimationFrame(() => setFrame((f) => (f + 1) % Math.max(1, a.frames)), cfg.fps);
+  const a = cfg.animations?.[animKey] ?? { x: 0, y: 0, w: 64, h: 64, framesX: 1, framesY: 1 };
+  const totalFrames = (a.framesX || a.frames || 1) * (a.framesY || 1);
+  useAnimationFrame(() => setFrame((f) => (f + 1) % Math.max(1, totalFrames)), cfg.fps);
   const scale = Math.min(box / a.w, box / a.h);
   return (
     <div className="cp-preview" style={{ width: box, height: box }}>
-      <Sprite spriteSheet={cfg.spriteSheet} x={a.x} y={a.y} w={a.w} h={a.h} frame={frame % a.frames} scale={scale} />
+      <Sprite spriteSheet={cfg.spriteSheet} x={a.x} y={a.y} w={a.w} h={a.h} frame={frame % totalFrames} framesX={a.framesX} scale={scale} />
     </div>
   );
 }

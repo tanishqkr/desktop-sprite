@@ -61,7 +61,7 @@ export function usePixelPassthrough(getState) {
         c.width = img.naturalWidth;
         c.height = img.naturalHeight;
         const ctx = c.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
         try {
           const id = ctx.getImageData(0, 0, c.width, c.height);
           alphaRef.current = { data: id.data, width: c.width, height: c.height };
@@ -102,8 +102,10 @@ export function usePixelPassthrough(getState) {
       if (s.flip) lx = fw - 1 - lx;
 
       // Map into the sheet using the animation's rectangle (x,y) + current frame.
-      const sx = Math.floor(s.x + s.frame * fw + lx);
-      const sy = Math.floor(s.y + ly);
+      const col = s.frame % Math.max(1, s.framesX || 1);
+      const row = Math.floor(s.frame / Math.max(1, s.framesX || 1));
+      const sx = Math.floor(s.x + col * fw + lx);
+      const sy = Math.floor(s.y + row * fh + ly);
       if (sx < 0 || sy < 0 || sx >= alpha.width || sy >= alpha.height) return true;
 
       const a = alpha.data[(sy * alpha.width + sx) * 4 + 3];

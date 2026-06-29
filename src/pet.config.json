@@ -4,8 +4,8 @@
   "clickThrough": true,
   "petSize": 128,
   "animations": {
-    "idle":  { "x": 0, "y": 0,   "w": 64, "h": 64, "frames": 4 },
-    "walk":  { "x": 0, "y": 64,  "w": 64, "h": 64, "frames": 6 },
-    "react": { "x": 0, "y": 128, "w": 64, "h": 64, "frames": 5 }
+    "idle":  { "x": 0, "y": 0,   "w": 64, "h": 64, "framesX": 4, "framesY": 1 },
+    "walk":  { "x": 0, "y": 64,  "w": 64, "h": 64, "framesX": 6, "framesY": 1 },
+    "react": { "x": 0, "y": 128, "w": 64, "h": 64, "framesX": 5, "framesY": 1 }
   }
 }
