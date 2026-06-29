@@ -34,7 +34,14 @@ function migrate(cfg) {
   for (const key of ANIM_KEYS) {
     const a = anims[key] || DEFAULT_CONFIG.animations[key];
     if (a && a.w != null && a.h != null) {
-      migrated[key] = { x: a.x ?? 0, y: a.y ?? 0, w: a.w, h: a.h, frames: a.frames ?? 1 };
+      migrated[key] = { 
+        x: a.x ?? 0, 
+        y: a.y ?? 0, 
+        w: a.w, 
+        h: a.h, 
+        framesX: a.framesX ?? a.frames ?? 1, 
+        framesY: a.framesY ?? 1 
+      };
     } else {
       // old {row, frames}
       migrated[key] = {
@@ -42,7 +49,8 @@ function migrate(cfg) {
         y: (a?.row ?? 0) * fh,
         w: fw,
         h: fh,
-        frames: a?.frames ?? 1,
+        framesX: a?.framesX ?? a?.frames ?? 1,
+        framesY: a?.framesY ?? 1,
       };
     }
   }

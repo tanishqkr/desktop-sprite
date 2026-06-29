@@ -117,7 +117,8 @@ function App() {
   // --- Frame stepping, capped to fps ---
   useAnimationFrame(() => {
     const current = animations[stateRef.current];
-    setFrame((f) => (f + 1) % current.frames);
+    const totalFrames = (current.framesX || 1) * (current.framesY || 1);
+    setFrame((f) => (f + 1) % totalFrames);
   }, fps);
 
   // Restart each animation from frame 0 when the state changes.
@@ -127,7 +128,8 @@ function App() {
 
   // "react" plays once: when its last frame has shown, return to idle.
   useEffect(() => {
-    if (state === STATES.REACT && frame === animations.react.frames - 1) {
+    const totalFrames = (animations.react.framesX || 1) * (animations.react.framesY || 1);
+    if (state === STATES.REACT && frame === totalFrames - 1) {
       const t = setTimeout(() => send("animationComplete"), 1000 / fps);
       return () => clearTimeout(t);
     }
@@ -147,6 +149,8 @@ function App() {
     y: anim.y,
     w: anim.w,
     h: anim.h,
+    framesX: anim.framesX,
+    framesY: anim.framesY,
     spriteSheet: config.spriteSheet,
   }));
 
@@ -221,6 +225,7 @@ function App() {
         w={anim.w}
         h={anim.h}
         frame={frame}
+        framesX={anim.framesX}
         scale={scale}
         flip={flip}
       />

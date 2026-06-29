@@ -297,14 +297,14 @@ button:hover {
   stroke-dasharray: 4 3;
 }
 
-.cp-grid5 {
+.cp-grid6 {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   margin: 12px 0;
 }
 
-.cp-grid5 input {
+.cp-grid6 input {
   padding: 6px;
 }
 
